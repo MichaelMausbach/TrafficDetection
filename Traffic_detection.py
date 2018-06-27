@@ -8,7 +8,7 @@ import os
 import numpy
 import json
 #import argparse
-print "[Tool Status] - STARTED"
+print "[Tool Status]   - STARTED"
 # todo-michael: force learn after a certain time, even if active
 # todo-michael: "night mode"
 # todo-michael: web server incl. statistics
@@ -46,7 +46,7 @@ def DetectionResultOutput(LiveFeed,c, direction, TrafficCounter, InactiveCounter
                     format(cy) + ";" + \
                     format(cv2.contourArea(c))
     # print some info in the console
-    print DetectionDetails
+    print "[DETECTION]     - ", DetectionDetails
     if conf["ShowPictures"] == True or conf["StoreDetection"] == True:
     	# in case tone of the two options is activated, put some information to the picture:
         cv2.putText(LiveFeed, "Vehicles counted by algo: {}".format(TrafficCounter), (10, 35),
@@ -105,6 +105,7 @@ def RecordVideo(camera):
         Selection = raw_input("File exists! Overwrite? (y/n) :")                                                        # ask to overwrite in case the file is already existing
         if Selection.lower() == "y":                                                                                    # if overwrite was chosen,
             os.remove("videos"+chr(92)+ format(VideoName)+'.avi')                                                       # delete the file
+            print "[INFO]          - File deleted: "+ format(VideoName)+'.avi'
         else:                                                                                                           # if overwrite was not chosen,
             RecordVideo(camera)                                                                                         # restart function and re-ask for the name
 
@@ -147,14 +148,14 @@ def CameraCalibration(camera):
             cv2.imshow('Calibration Window - press ESC to finalize',LiveFeed)                                                                   # and show the frame as live view
 
             if cv2.waitKey(1) & 0xFF == 27:                                                                             # when ESC button was pressed,
-                print "calibration finished"
+                print "[Tool Status]   - calibration finished"
                 cv2.imwrite('static\images\Calibration.jpg', LiveFeed)
                 CloseCamera(camera)  # call the camera close function
                 break
 
 def OfflineVideo():
     # a function to initialize an pre-recorded video for offfline analysis
-    print "All *.avi files in .."+chr(92)+"videos"+chr(92)+":"
+    print "[INFO]          - All *.avi files in .."+chr(92)+"videos"+chr(92)+":"
     for file in os.listdir("videos"):                                                                           # show the content of the videos folder
         if "avi" in file:                                                                                               # only print avi files
             print file
@@ -164,9 +165,9 @@ def OfflineVideo():
     else:
         if os.path.isfile("videos"+chr(92)+Selection+".avi"):                                                           # check if the file is existing
             camera = cv2.VideoCapture("videos"+chr(92)+Selection+".avi")                                                # take the file defined by the user if it is existing in the video folder
-            print "Selected file: " + camera
+            print "[INFO]          - Selected file: " + camera
         else:
-            print "file not found!"                                                                                     # if file was not found,
+            print "[INFO]          - File not found!"                                                                                     # if file was not found,
             OfflineVideo()                                                                                              # restart function and re-ask for name
     return camera
 def OnlineVideo():
@@ -280,7 +281,7 @@ def TrafficDetection(camera):
         if UpdateTime > conf["MinTimeToWaitForUpdateBackground"] and \
                         InactiveCounter >= conf["MinNoMovementFramesToWaitForUpdateBackground"]:                                # update background image
             firstFrame = Grayscaled_Picture
-            print "updated first frame @ ",elapsedtime
+            print "[INFO]          - updated first frame @ ",elapsedtime
             TimeSinceLastUpdate = time.time() - Starttime
 
         DrawDetectionFrames(LiveFeed)
@@ -295,10 +296,10 @@ def TrafficDetection(camera):
         if key == ord("c"):                                                                                             # "c" increases the counts of manual counted vehicles
             ManualCounter=ManualCounter+1
         if key == ord("x"):                                                                                             # "x" will store the current frame as picture with prefix "missed detection"
-            print "missed detection @ ", elapsedtime
+            print "[INFO]          - missed detection @ ", elapsedtime
             cv2.imwrite("Screenshots\missed_dectection @ "+format(elapsedtime)+ ".jpg", LiveFeed)
         if key == ord("l"):                                                                                             # "l" manually triggers the background substraction relearn
-            print "manually learn new first frame"
+            print "[INFO]          - manually learn new first frame"
             firstFrame = Grayscaled_Picture
 
     StatisticFileName.close()
@@ -353,5 +354,6 @@ while True:                                                                     
         print str(camera)
         if camera != "":
             CloseCamera(camera)
-        print "[Tool Status] - ENDED"
+        print "[Tool Status]     - ENDED"
+
         break
