@@ -1,0 +1,15 @@
+{
+	"mindetectionwindowY": 165,
+	"maxdetectionwindowY": 440,
+	"mindetectionwindowX": 0,
+	"maxdetectionwindowX": 640,
+	"DetectionLine": 320,
+	"MinObjectSize":10000,
+	"DilateIterations":3,
+	"ThresholdCalibration": 25,
+	"MaximumMovementDelta": 70,
+	"MinTimeToWaitForUpdateBackground":60,
+	"MinNoMovementFramesToWaitForUpdateBackground" : 20,
+	"ShowPictures":true,
+	"StoreDetection":true
+}
