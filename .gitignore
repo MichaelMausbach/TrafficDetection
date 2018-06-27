@@ -1,0 +1,14 @@
+*.zip
+*.exe
+*.pyc
+*.avi
+*.DS_Store
+/.idea
+/Screenshots
+/venv
+/videos
+Thumbs.db
+~$*.xls*
+~$*.doc*
+{}
+
