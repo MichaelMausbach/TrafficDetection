@@ -12,5 +12,7 @@
 	"MinNoMovementFramesToWaitForUpdateBackground" : 20,
 	"ShowPictures":true,
 	"StoreDetection":true,
-	"PiCamera": false
+	"PiCamera": false,
+	"ResolutionW": 640,
+	"ResolutionH": 480
 }

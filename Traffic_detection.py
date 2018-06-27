@@ -108,14 +108,14 @@ def RecordVideo(camera):
         else:                                                                                                           # if overwrite was not chosen,
             RecordVideo(camera)                                                                                         # restart function and re-ask for the name
 
-    fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')                                                                 # Define the codec and create VideoWriter object
-    RecordedVideo = cv2.VideoWriter("videos"+chr(92)+ format(VideoName) + '.avi', fourcc, 25, (640, 480), True)         # Define the Video parameters (name, resolution, framerate)
+    fourcc = cv2.VideoWriter_fourcc(*"MJPG")                                                                 # Define the codec and create VideoWriter object
+    RecordedVideo = cv2.VideoWriter("videos"+chr(92)+ format(VideoName) + '.avi', fourcc, 25, (conf["ResolutionW"],conf["ResolutionH"]), True)         # Define the Video parameters (name, resolution, framerate)
     #camera = vs.read()
 
     #while (camera.isOpened()):                                                                                          # loop over frames from camera
     while True:
         LiveFeed = vs.read()                                                                                   # read single frame from camera
-        LiveFeed = imutils.resize(LiveFeed, width=500)
+        LiveFeed = imutils.resize(LiveFeed, width=conf["ResolutionW"], height=conf["ResolutionH"])
         if True:                                                                                                 # as long as there is a frame,
             RecordedVideo.write(LiveFeed)                                                                               # add this frame to the defined video stream
             cv2.putText(LiveFeed, "Recording file .."+chr(92)+"videos"+chr(92)+ format(VideoName)+'.avi',               # for the live view, add an identifier that the video is recorded
