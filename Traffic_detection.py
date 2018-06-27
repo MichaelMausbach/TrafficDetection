@@ -1,14 +1,14 @@
 import datetime
-import imutils
 from imutils.video import VideoStream
-from imutils.video.pivideostream import PiVideoStream
+#from imutils.video.pivideostream import PiVideoStream
+import imutils
 import time
 import cv2
 import os
 import numpy
 import json
 #import argparse
-
+print "[Tool Status] - STARTED"
 # todo-michael: force learn after a certain time, even if active
 # todo-michael: "night mode"
 # todo-michael: web server incl. statistics
@@ -18,13 +18,14 @@ import json
 # USAGE
 # python videostream_demo.py
 # python videostream_demo.py --picamera 1
-#ap = argparse.ArgumentParser()
-#ap.add_argument("-p", "--picamera", type=int, default=-1,
+# ap = argparse.ArgumentParser()
+# ap.add_argument("-p", "--picamera", type=int, default=-1,
 #	help="whether or not the Raspberry Pi camera should be used")
 #args = vars(ap.parse_args())
-vs = PiVideoStream().start()
-time.sleep(0.5)
 conf = json.load(open("Bahnhofstr14.json"))
+
+
+
 
 def DetectionResultOutput(LiveFeed,c, direction, TrafficCounter, InactiveCounter,x,y,w,h,cx,cy, StatisticFileName):
     if time.daylight == 0:
@@ -95,7 +96,7 @@ def CloseCamera(camera):
     # a function to ensure camera is properly closed and all display windows are removed
     cv2.destroyAllWindows()
     vs.stop()
-    #camera.release()
+    print "[Camera Status] - deactivated"
 
 def RecordVideo(camera):
     # a function to record a vide for later off-line analysis
@@ -109,7 +110,7 @@ def RecordVideo(camera):
 
     fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')                                                                 # Define the codec and create VideoWriter object
     RecordedVideo = cv2.VideoWriter("videos"+chr(92)+ format(VideoName) + '.avi', fourcc, 25, (640, 480), True)         # Define the Video parameters (name, resolution, framerate)
-    camera = vs.read()
+    #camera = vs.read()
 
     #while (camera.isOpened()):                                                                                          # loop over frames from camera
     while True:
@@ -171,9 +172,14 @@ def OfflineVideo():
 def OnlineVideo():
     # a function to define the standard camera hardware as video source
     #camera = cv2.VideoCapture(0)
+    global vs
+    vs = VideoStream(usePiCamera=conf["PiCamera"]).start()
+    print "[Camera Status] - warming up"
+    time.sleep(0.5)
     camera = vs.read()
-    print "online"
+    print "[Camera Status] - ready"
     return camera
+
 def TrafficDetection(camera):
     # This is the main Traffic Detection function (side detection view)
     global SimpleCounter
@@ -195,6 +201,7 @@ def TrafficDetection(camera):
     Starttime = time.time()
     UpdateTime = 0
     TimeSinceLastUpdate = 0
+    SimpleCounter = 0
     # ------------------------------------------------------------------------------------------------------------------
     StatisticFileName = open(StatisticFile, 'w')
     while True:                                                                                                         # loop over the frames of the video
@@ -318,7 +325,7 @@ global StatisticFile
 
 DetectionLineUpperPoint= conf["DetectionLine"], conf["mindetectionwindowY"]
 DetectionLineLowerPoint= conf["DetectionLine"], conf["maxdetectionwindowY"]
-StatisticFile = r'C:\Data\Git\Tools\Traffic Detection\Statistic_'+format(datetime.datetime.now().strftime("%Y%m%d_%H%Mq%S"))+'.csv'
+StatisticFile = r'C:\Data\Git\Tools\TrafficDetection\Statistic_'+format(datetime.datetime.now().strftime("%Y%m%d_%H%Mq%S"))+'.csv'
 
 print "Main Menu:"                                                                                                      # Main Menu
 print "C - Calibrate Camera"
@@ -343,6 +350,8 @@ while True:                                                                     
         camera = OnlineVideo()
         TrafficDetection(camera)
     if Selection.lower() == "q" or Selection == chr(27):
-        if camera != "": CloseCamera(camera)
-        print "quit program"
+        print str(camera)
+        if camera != "":
+            CloseCamera(camera)
+        print "[Tool Status] - ENDED"
         break

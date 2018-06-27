@@ -11,5 +11,6 @@
 	"MinTimeToWaitForUpdateBackground":60,
 	"MinNoMovementFramesToWaitForUpdateBackground" : 20,
 	"ShowPictures":true,
-	"StoreDetection":true
+	"StoreDetection":true,
+	"PiCamera": false
 }
