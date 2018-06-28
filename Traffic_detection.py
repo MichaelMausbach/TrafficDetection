@@ -166,7 +166,7 @@ def OfflineVideo():
         camera = FileVideoStream("videos" + chr(92) + "LongVideo1_quer" + ".avi").start()
     else:
         if os.path.isfile("videos"+chr(92)+Selection+".avi"):                                                           # check if the file is existing
-            camera = cv2.VideoCapture("videos"+chr(92)+Selection+".avi")                                                # take the file defined by the user if it is existing in the video folder
+            camera = FileVideoStream("videos"+chr(92)+Selection+".avi").start()                                                # take the file defined by the user if it is existing in the video folder
             print "[INFO]          - Selected file: " + str(camera)
         else:
             print "[INFO]          - File not found!"                                                                                     # if file was not found,
