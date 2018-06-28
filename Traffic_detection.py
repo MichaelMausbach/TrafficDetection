@@ -136,7 +136,7 @@ def CameraCalibration(camera):
     #while(camera.isOpened()):                                                                                           # loop over frames from camera
     while True:
         LiveFeed = vs.read()
-        LiveFeed = imutils.resize(LiveFeed, width=500)
+        LiveFeed = imutils.resize(LiveFeed, width=conf["ResolutionW"], height=conf["ResolutionH"])
         # read single frame from camera
         #if grabbed==True:                                                                                                   # as long as there is a frame,
         if True:
@@ -165,7 +165,7 @@ def OfflineVideo():
     else:
         if os.path.isfile("videos"+chr(92)+Selection+".avi"):                                                           # check if the file is existing
             camera = cv2.VideoCapture("videos"+chr(92)+Selection+".avi")                                                # take the file defined by the user if it is existing in the video folder
-            print "[INFO]          - Selected file: " + camera
+            print "[INFO]          - Selected file: " + str(camera)
         else:
             print "[INFO]          - File not found!"                                                                                     # if file was not found,
             OfflineVideo()                                                                                              # restart function and re-ask for name
@@ -208,9 +208,9 @@ def TrafficDetection(camera):
     while True:                                                                                                         # loop over the frames of the video
         elapsedtime = time.time() - Starttime                                                                           # calculate the time since the video has started
         UpdateTime = time.time() - Starttime - TimeSinceLastUpdate                                                      # calculate the time since the last background substraction reference picture was taken
-        #(grabbed, LiveFeed) = camera.read()                                                                             # grab the current frame
+        #(grabbed, LiveFeed) = camera.read()                                                                            # grab the current frame
         LiveFeed = vs.read()
-        LiveFeed = imutils.resize(LiveFeed, width=500)
+        LiveFeed = imutils.resize(LiveFeed, width=conf["ResolutionW"], height=conf["ResolutionH"])
 
         DetectionStatus = "Inactive"                                                                                    # initialize the status text displayed in the video
         InactiveCounter = InactiveCounter +1                                                                            # increse the Inactivty counter every loop
@@ -219,7 +219,7 @@ def TrafficDetection(camera):
 #            CloseCamera(camera)                                                                                         # call the camera close function
 #            break                                                                                                       # go back to main menu
 
-        LiveFeed = imutils.resize(LiveFeed, width=500)                                                                 # resize the LiveFeed
+        LiveFeed = imutils.resize(LiveFeed, width=conf["ResolutionW"], height=conf["ResolutionH"])                                                                 # resize the LiveFeed
         Grayscaled_Picture = cv2.cvtColor(LiveFeed, cv2.COLOR_BGR2GRAY)                                                 # convert the LiveFeed to grayscale
         Grayscaled_Picture = cv2.GaussianBlur(Grayscaled_Picture, (21, 21), 0)                                          # blur the LiveFeed
 
