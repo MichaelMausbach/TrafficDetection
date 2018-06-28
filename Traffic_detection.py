@@ -1,5 +1,6 @@
 import datetime
 from imutils.video import VideoStream
+from imutils.video import FileVideoStream
 #from imutils.video.pivideostream import PiVideoStream
 import imutils
 import time
@@ -15,7 +16,7 @@ print "[Tool Status]   - STARTED"
 # todo-michael: rework recording 
 
 # construct the argument parse and parse the arguments
-# USAGE
+# USAGEfvs = FileVideoStream(args["video"]).start()
 # python videostream_demo.py
 # python videostream_demo.py --picamera 1
 # ap = argparse.ArgumentParser()
@@ -25,11 +26,9 @@ print "[Tool Status]   - STARTED"
 conf = json.load(open("Bahnhofstr14.json"))
 
 
-
-
 def DetectionResultOutput(LiveFeed,c, direction, TrafficCounter, InactiveCounter,x,y,w,h,cx,cy, StatisticFileName):
     if time.daylight == 0:
-        Daylight = "NIGHT"
+        Daylight = "-NIGHT--"
     elif time.daylight == 1:
         Daylight = "DAYLIGHT"
 
@@ -95,9 +94,11 @@ def DrawVideoInformation(LiveFeed, DetectionStatus, TrafficCounter, ManualCounte
 def CloseCamera(camera):
     # a function to ensure camera is properly closed and all display windows are removed
     cv2.destroyAllWindows()
-    vs.stop()
-    print "[Camera Status] - deactivated"
-
+    if vars().has_key('vs') == True:
+        vs.stop()
+        print "[Camera Status] - deactivated"
+    else:
+        print "[Camera Status] - not activated (OFFLINE MODE)"
 def RecordVideo(camera):
     # a function to record a vide for later off-line analysis
     VideoName = raw_input("VideoName (without extension) : ")                                                           # ask for filename
@@ -135,7 +136,7 @@ def CameraCalibration(camera):
     # a function which allows to calibrate the camera orientation before recording or live tracking is started
     #while(camera.isOpened()):                                                                                           # loop over frames from camera
     while True:
-        LiveFeed = vs.read()
+        LiveFeed = camera.read()
         LiveFeed = imutils.resize(LiveFeed, width=conf["ResolutionW"], height=conf["ResolutionH"])
         # read single frame from camera
         #if grabbed==True:                                                                                                   # as long as there is a frame,
@@ -161,7 +162,8 @@ def OfflineVideo():
             print file
     Selection = raw_input("select file to play (without extension): ")                                                  # ask user to type in the file to play
     if Selection=="":                                                                                                   # if nothing is entered
-        camera = cv2.VideoCapture("videos" + chr(92) + "LongVideo1_quer" + ".avi")                                      # take the default video
+        #vs = cv2.VideoCapture("videos" + chr(92) + "LongVideo1_quer" + ".avi")                                      # take the default video
+        camera = FileVideoStream("videos" + chr(92) + "LongVideo1_quer" + ".avi").start()
     else:
         if os.path.isfile("videos"+chr(92)+Selection+".avi"):                                                           # check if the file is existing
             camera = cv2.VideoCapture("videos"+chr(92)+Selection+".avi")                                                # take the file defined by the user if it is existing in the video folder
@@ -169,11 +171,13 @@ def OfflineVideo():
         else:
             print "[INFO]          - File not found!"                                                                                     # if file was not found,
             OfflineVideo()                                                                                              # restart function and re-ask for name
+
     return camera
+
 def OnlineVideo():
     # a function to define the standard camera hardware as video source
     #camera = cv2.VideoCapture(0)
-    global vs
+    #global vs
     vs = VideoStream(usePiCamera=conf["PiCamera"]).start()
     print "[Camera Status] - warming up"
     time.sleep(0.5)
@@ -209,7 +213,7 @@ def TrafficDetection(camera):
         elapsedtime = time.time() - Starttime                                                                           # calculate the time since the video has started
         UpdateTime = time.time() - Starttime - TimeSinceLastUpdate                                                      # calculate the time since the last background substraction reference picture was taken
         #(grabbed, LiveFeed) = camera.read()                                                                            # grab the current frame
-        LiveFeed = vs.read()
+        LiveFeed = camera.read()
         LiveFeed = imutils.resize(LiveFeed, width=conf["ResolutionW"], height=conf["ResolutionH"])
 
         DetectionStatus = "Inactive"                                                                                    # initialize the status text displayed in the video
@@ -346,6 +350,7 @@ while True:                                                                     
         RecordVideo(camera)
     if Selection.lower() == "o":
         camera = OfflineVideo()
+        print camera
         TrafficDetection(camera)
     if Selection.lower() == "l":
         camera = OnlineVideo()
@@ -354,6 +359,6 @@ while True:                                                                     
         print str(camera)
         if camera != "":
             CloseCamera(camera)
-        print "[Tool Status]     - ENDED"
+        print "[Tool Status]   - ENDED"
 
         break
