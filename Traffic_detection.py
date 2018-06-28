@@ -214,6 +214,7 @@ def TrafficDetection(camera):
         UpdateTime = time.time() - Starttime - TimeSinceLastUpdate                                                      # calculate the time since the last background substraction reference picture was taken
         #(grabbed, LiveFeed) = camera.read()                                                                            # grab the current frame
         LiveFeed = camera.read()
+        time.sleep(0.1)
         LiveFeed = imutils.resize(LiveFeed, width=conf["ResolutionW"], height=conf["ResolutionH"])
 
         DetectionStatus = "Inactive"                                                                                    # initialize the status text displayed in the video
@@ -234,17 +235,17 @@ def TrafficDetection(camera):
 
         frameDelta = cv2.absdiff(firstFrame, Grayscaled_Picture)                                                        # compute the absolute difference between the current frame and first frame
         thresh = cv2.threshold(frameDelta, conf["ThresholdCalibration"], 255, cv2.THRESH_BINARY)[1]
-        thresh = cv2.dilate(thresh, None, iterations=conf["DilateIterations"])                                                  # dilate the thresholded image to fill in holes, then find contours on thresholded image
+        thresh = cv2.dilate(thresh, None, iterations=conf["DilateIterations"])                                          # dilate the thresholded image to fill in holes, then find contours on thresholded image
         #(_,cnts, _) = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)                      # opencv 2.4 requires three arguments to find the contours
         (_, cnts, _) = cv2.findContours(thresh.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)                          # opencv 2.4 requires three arguments to find the contours
 
         for c in cnts:                                                                                                  # loop over the contours
            # print "frame c- ", cv2.contourArea(c), " --- ", cx, " , ", cy, cv2.boundingRect(c)
-            if cv2.contourArea(c) > int(conf["MinObjectSize"]):                                                                 # if the contour is too small, ignore it
+            if cv2.contourArea(c) > int(conf["MinObjectSize"]):                                                         # if the contour is too small, ignore it
                 SimpleCounter = SimpleCounter + 1
                 (xold, yold, wold, hold) = (cx, cy, w, h)                                                               # store the former bounding box data to calculate the direction of movement
                 (x, y, w, h) = cv2.boundingRect(c)                                                                      # compute the bounding box for the contour
-                if conf["maxdetectionwindowY"] > y > conf["mindetectionwindowY"]:                                                       # only do an analyis in a specific height of the video
+                if (conf["maxdetectionwindowY"] > y > conf["mindetectionwindowY"]) and (conf["maxdetectionwindowY"] > (y+h)):                                                 # only do an analyis in a specific height of the video
                     DetectionStatus = "Active"                                                                          # Set Detection Status to Active, if there is a larger movement in the detection window
                     centroid = cv2.moments(c)                                                                           # find the mass center of the blob
                     cx = int(centroid['m10'] / centroid['m00'])                                                         # for x direction

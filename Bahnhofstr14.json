@@ -8,7 +8,7 @@
 	"DilateIterations":3,
 	"ThresholdCalibration": 25,
 	"MaximumMovementDelta": 70,
-	"MinTimeToWaitForUpdateBackground":60,
+	"MinTimeToWaitForUpdateBackground":5,
 	"MinNoMovementFramesToWaitForUpdateBackground" : 20,
 	"ShowPictures":true,
 	"StoreDetection":true,
