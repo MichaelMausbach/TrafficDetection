@@ -1,6 +1,7 @@
 import datetime
 from imutils.video import VideoStream
 from imutils.video import FileVideoStream
+from imutils.video import FPS
 #from imutils.video.pivideostream import PiVideoStream
 import imutils
 import time
@@ -9,6 +10,8 @@ import os
 import numpy
 import json
 #import argparse
+
+
 print "[Tool Status]   - STARTED"
 # todo-michael: force learn after a certain time, even if active
 # todo-michael: "night mode"
@@ -209,14 +212,14 @@ def TrafficDetection(camera):
     SimpleCounter = 0
     # ------------------------------------------------------------------------------------------------------------------
     StatisticFileName = open(StatisticFile, 'w')
-    while True:                                                                                                         # loop over the frames of the video
+    fps = FPS().start()
+    while camera.stopped == False:                                                                                                         # loop over the frames of the video
         elapsedtime = time.time() - Starttime                                                                           # calculate the time since the video has started
         UpdateTime = time.time() - Starttime - TimeSinceLastUpdate                                                      # calculate the time since the last background substraction reference picture was taken
-        #(grabbed, LiveFeed) = camera.read()                                                                            # grab the current frame
         LiveFeed = camera.read()
-        time.sleep(0.1)
+        #time.sleep(0.1)
         LiveFeed = imutils.resize(LiveFeed, width=conf["ResolutionW"], height=conf["ResolutionH"])
-
+        fps.update()
         DetectionStatus = "Inactive"                                                                                    # initialize the status text displayed in the video
         InactiveCounter = InactiveCounter +1                                                                            # increse the Inactivty counter every loop
         ActiveCounter = 0
@@ -262,18 +265,18 @@ def TrafficDetection(camera):
                                 "former: " + str((xold, yold, wold, hold)) + " Size-" + str(cv2.contourArea(c-1)), \
                                 (x, y + 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
                     direction = "None"
-                    DetectionResultOutput(LiveFeed, c, direction, TrafficCounter, InactiveCounter,
-                                          x, y, w, h, cx, cy, StatisticFileName)
+                    #DetectionResultOutput(LiveFeed, c, direction, TrafficCounter, InactiveCounter,
+                     #                     x, y, w, h, cx, cy, StatisticFileName)
                     if cx >= conf["DetectionLine"] and xold < conf["DetectionLine"] and xold < cx and (cx-xold)<=conf["MaximumMovementDelta"]:  # detect movement accross the line (only small movements are allowed) from left to right
                         TrafficCounter = TrafficCounter + 1                                                             # increase the counter
                         direction = "North"
-                        time.sleep(0.1)
+                        #time.sleep(0.1)
                         DetectionResultOutput(LiveFeed,c, direction, TrafficCounter,InactiveCounter,
                                               x,y,w,h,cx,cy, StatisticFileName)                                         # call the function which prints some console stuff, shows the dected picture and write the statistic file
                     if cx <= conf["DetectionLine"] and xold > conf["DetectionLine"] and xold > cx and (xold-cx)<=conf["MaximumMovementDelta"]:  # detect movement accross the line (only small movements are allowed) from right to left
                         TrafficCounter = TrafficCounter + 1                                                             # increase the counter
                         direction = "South"
-                        time.sleep(0.1)
+                        #time.sleep(0.1)
                         DetectionResultOutput(LiveFeed,c, direction, TrafficCounter, InactiveCounter,
                                               x, y, w, h, cx, cy, StatisticFileName)                                    # call the function which prints some console stuff, shows the dected picture and write the statistic file
                 DetectionStatus = "Active"
@@ -307,8 +310,12 @@ def TrafficDetection(camera):
             print "[INFO]          - manually learn new first frame"
             firstFrame = Grayscaled_Picture
 
+    fps.stop()
+    print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
+    print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
     StatisticFileName.close()
     CloseCamera(camera)
+
 
 
 # Calibration Definitions-----------------------------------------------------------------------------------------------
