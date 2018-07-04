@@ -29,7 +29,7 @@ print "[Tool Status]   - STARTED"
 conf = json.load(open("Bahnhofstr14.json"))
 
 
-def DetectionResultOutput(LiveFeed,c, direction, TrafficCounter, InactiveCounter,x,y,w,h,cx,cy, StatisticFileName):
+def DetectionResultOutput(LiveFeed, frameDelta, thresh, c, direction, TrafficCounter, InactiveCounter,x,y,w,h,cx,cy, StatisticFileName):
     if time.daylight == 0:
         Daylight = "-NIGHT--"
     elif time.daylight == 1:
@@ -63,8 +63,11 @@ def DetectionResultOutput(LiveFeed,c, direction, TrafficCounter, InactiveCounter
         StatisticFileName.write(DetectionDetails + "\n")
         cv2.imwrite("Screenshots\_" + format(TrafficCounter) + "_"+ format(SimpleCounter)+".jpg", LiveFeed)
         StatisticFileName.write(DetectionDetails + "\n")
+    if conf["StoreThresholdedView"] == True:
+        cv2.imwrite("Screenshots\_" + format(TrafficCounter) + "D" + str(conf["ThresholdCalibration"])+ str(conf["DilateIterations"])+".jpg", frameDelta)
+        cv2.imwrite("Screenshots\_" + format(TrafficCounter) + "T" + str(conf["ThresholdCalibration"])+ str(conf["DilateIterations"])+ ".jpg", thresh)
 
-    
+
 def ShowVideoOutput(LiveFeed, frameDelta, thresh, firstFrame):
     if conf["ShowPictures"] == True:
         cv2.imshow("Live View", LiveFeed)
@@ -241,10 +244,12 @@ def TrafficDetection(camera):
         thresh = cv2.dilate(thresh, None, iterations=conf["DilateIterations"])                                          # dilate the thresholded image to fill in holes, then find contours on thresholded image
         #(_,cnts, _) = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)                      # opencv 2.4 requires three arguments to find the contours
         (_, cnts, _) = cv2.findContours(thresh.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)                          # opencv 2.4 requires three arguments to find the contours
-
         for c in cnts:                                                                                                  # loop over the contours
            # print "frame c- ", cv2.contourArea(c), " --- ", cx, " , ", cy, cv2.boundingRect(c)
-            if cv2.contourArea(c) > int(conf["MinObjectSize"]):                                                         # if the contour is too small, ignore it
+            if int(conf["MaxObjectSize"]) < cv2.contourArea(c):
+                firstFrame = None
+                break
+            if int(conf["MaxObjectSize"]) > cv2.contourArea(c) > int(conf["MinObjectSize"]):                                                         # if the contour is too small, ignore it
                 SimpleCounter = SimpleCounter + 1
                 (xold, yold, wold, hold) = (cx, cy, w, h)                                                               # store the former bounding box data to calculate the direction of movement
                 (x, y, w, h) = cv2.boundingRect(c)                                                                      # compute the bounding box for the contour
@@ -265,19 +270,19 @@ def TrafficDetection(camera):
                                 "former: " + str((xold, yold, wold, hold)) + " Size-" + str(cv2.contourArea(c-1)), \
                                 (x, y + 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
                     direction = "None"
-                    #DetectionResultOutput(LiveFeed, c, direction, TrafficCounter, InactiveCounter,
+                    #DetectionResultOutput(LiveFeed, frameDelta, thresh, c, direction, TrafficCounter, InactiveCounter,
                      #                     x, y, w, h, cx, cy, StatisticFileName)
                     if cx >= conf["DetectionLine"] and xold < conf["DetectionLine"] and xold < cx and (cx-xold)<=conf["MaximumMovementDelta"]:  # detect movement accross the line (only small movements are allowed) from left to right
                         TrafficCounter = TrafficCounter + 1                                                             # increase the counter
                         direction = "North"
                         #time.sleep(0.1)
-                        DetectionResultOutput(LiveFeed,c, direction, TrafficCounter,InactiveCounter,
+                        DetectionResultOutput(LiveFeed, frameDelta, thresh, c, direction, TrafficCounter,InactiveCounter,
                                               x,y,w,h,cx,cy, StatisticFileName)                                         # call the function which prints some console stuff, shows the dected picture and write the statistic file
                     if cx <= conf["DetectionLine"] and xold > conf["DetectionLine"] and xold > cx and (xold-cx)<=conf["MaximumMovementDelta"]:  # detect movement accross the line (only small movements are allowed) from right to left
                         TrafficCounter = TrafficCounter + 1                                                             # increase the counter
                         direction = "South"
                         #time.sleep(0.1)
-                        DetectionResultOutput(LiveFeed,c, direction, TrafficCounter, InactiveCounter,
+                        DetectionResultOutput(LiveFeed, frameDelta, thresh,c, direction, TrafficCounter, InactiveCounter,
                                               x, y, w, h, cx, cy, StatisticFileName)                                    # call the function which prints some console stuff, shows the dected picture and write the statistic file
                 DetectionStatus = "Active"
                 ActiveCounter = ActiveCounter + 1
