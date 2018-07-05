@@ -71,11 +71,10 @@ def DetectionResultOutput(LiveFeed, frameDelta, thresh, c, direction, TrafficCou
 def ShowVideoOutput(LiveFeed, frameDelta, thresh, firstFrame):
     if conf["ShowPictures"] == True:
         cv2.imshow("Live View", LiveFeed)
-        cv2.imshow("Frame Delta", frameDelta)
-        cv2.imshow("Thresholded View", thresh)
-        cv2.imshow("Background substraction base", firstFrame)
+        #cv2.imshow("Frame Delta", frameDelta)
+        #cv2.imshow("Thresholded View", thresh)
+        #cv2.imshow("Background substraction base", firstFrame)
 
-    
 def DrawDetectionFrames(LiveFeed):
     # function which draws the detection thresholds
     cv2.rectangle(LiveFeed, (conf["mindetectionwindowX"], conf["mindetectionwindowY"]),
@@ -184,10 +183,10 @@ def OnlineVideo():
     # a function to define the standard camera hardware as video source
     #camera = cv2.VideoCapture(0)
     #global vs
-    vs = VideoStream(usePiCamera=conf["PiCamera"]).start()
+    camera = VideoStream(usePiCamera=conf["PiCamera"]).start()
     print "[Camera Status] - warming up"
     time.sleep(0.5)
-    camera = vs.read()
+    #camera = vs.read()
     print "[Camera Status] - ready"
     return camera
 
