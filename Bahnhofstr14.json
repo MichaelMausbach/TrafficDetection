@@ -11,6 +11,7 @@
 	"MaximumMovementDelta": 70,
 	"MinTimeToWaitForUpdateBackground":5,
 	"MinNoMovementFramesToWaitForUpdateBackground" : 20,
+	"MaxConsecutiveActiveFramesForUpdateBackground" : 100,
 	"ShowPictures":true,
 	"StoreDetection":true,
 	"StoreThresholdedView": true,

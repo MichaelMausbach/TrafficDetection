@@ -292,9 +292,10 @@ def TrafficDetection(camera):
                     #time.sleep(0.1)                                                                                        # optional: slowmotion when movement detected (only offline modus)
 
             if UpdateTime > conf["MinTimeToWaitForUpdateBackground"] and \
-                            InactiveCounter >= conf["MinNoMovementFramesToWaitForUpdateBackground"]:                                # update background image
+                            InactiveCounter >= conf["MinNoMovementFramesToWaitForUpdateBackground"] or \
+                            ActiveCounter >= conf["MaxConsecutiveActiveFramesForUpdateBackground"]:                                # update background image
                 firstFrame = Grayscaled_Picture
-                print "[INFO]          - updated first frame @ ",elapsedtime
+                print "[INFO]          - updated first frame @ " + str(time) + " - Delta : " + str(elapsedtime)
                 TimeSinceLastUpdate = time.time() - Starttime
 
             DrawDetectionFrames(LiveFeed)
