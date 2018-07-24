@@ -2,6 +2,7 @@ import datetime
 from imutils.video import VideoStream
 from imutils.video import FileVideoStream
 from imutils.video import FPS
+from shutil import copyfile
 #from imutils.video.pivideostream import PiVideoStream
 import imutils
 import time
@@ -49,6 +50,9 @@ def DetectionResultOutput(LiveFeed, frameDelta, thresh, c, direction, TrafficCou
                     format(cv2.contourArea(c))
     # print some info in the console
     print "[DETECTION]     - ", DetectionDetails
+    StatisticFileName2 = open(StatisticFile2, 'w')
+    StatisticFileName2.write(DetectionDetails + "\n")
+    StatisticFileName2.close()
     if conf["ShowPictures"] == True or conf["StoreDetection"] == True:
     	# in case tone of the two options is activated, put some information to the picture:
         cv2.putText(LiveFeed, "Vehicles counted by algo: {}".format(TrafficCounter), (10, 35),
@@ -61,8 +65,8 @@ def DetectionResultOutput(LiveFeed, frameDelta, thresh, c, direction, TrafficCou
     if conf["StoreDetection"] == True:
         cv2.imwrite("Screenshots\_" + format(TrafficCounter) + ".jpg", LiveFeed)
         StatisticFileName.write(DetectionDetails + "\n")
-        cv2.imwrite("Screenshots\_" + format(TrafficCounter) + "_"+ format(SimpleCounter)+".jpg", LiveFeed)
-        StatisticFileName.write(DetectionDetails + "\n")
+        #cv2.imwrite("Screenshots\_" + format(TrafficCounter) + "_"+ format(SimpleCounter)+".jpg", LiveFeed)
+        #StatisticFileName.write(DetectionDetails + "\n")
     if conf["StoreThresholdedView"] == True:
         cv2.imwrite("Screenshots\_" + format(TrafficCounter) + "D" + str(conf["ThresholdCalibration"])+ str(conf["DilateIterations"])+".jpg", frameDelta)
         cv2.imwrite("Screenshots\_" + format(TrafficCounter) + "T" + str(conf["ThresholdCalibration"])+ str(conf["DilateIterations"])+ ".jpg", thresh)
@@ -296,6 +300,7 @@ def TrafficDetection(camera):
                             ActiveCounter >= conf["MaxConsecutiveActiveFramesForUpdateBackground"]:                                # update background image
                 firstFrame = Grayscaled_Picture
                 print "[INFO]          - updated first frame @ " + str(time) + " - Delta : " + str(elapsedtime)
+
                 TimeSinceLastUpdate = time.time() - Starttime
 
             DrawDetectionFrames(LiveFeed)
@@ -346,6 +351,7 @@ global StatisticFile
 DetectionLineUpperPoint= conf["DetectionLine"], conf["mindetectionwindowY"]
 DetectionLineLowerPoint= conf["DetectionLine"], conf["maxdetectionwindowY"]
 StatisticFile = r'C:\Data\Git\Tools\TrafficDetection\Statistic_'+format(datetime.datetime.now().strftime("%Y%m%d_%H%Mq%S"))+'.csv'
+StatisticFile2 = r'C:\Data\Git\Tools\TrafficDetection\Log_'+format(datetime.datetime.now().strftime("%Y%m%d_%H%Mq%S"))+'.csv'
 
 print "Main Menu:"                                                                                                      # Main Menu
 print "C - Calibrate Camera"
