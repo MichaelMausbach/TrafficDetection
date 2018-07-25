@@ -2,7 +2,7 @@ import datetime
 from imutils.video import VideoStream
 from imutils.video import FileVideoStream
 from imutils.video import FPS
-from shutil import copyfile
+#from flask import Flask
 #from imutils.video.pivideostream import PiVideoStream
 import imutils
 import time
@@ -28,6 +28,12 @@ print "[Tool Status]   - STARTED"
 #	help="whether or not the Raspberry Pi camera should be used")
 #args = vars(ap.parse_args())
 conf = json.load(open("Bahnhofstr14.json"))
+#app = Flask(__name__)
+
+#@app.route("/")
+#def hello():
+#    return "Hello World!"
+
 
 
 def DetectionResultOutput(LiveFeed, frameDelta, thresh, c, direction, TrafficCounter, InactiveCounter,x,y,w,h,cx,cy, StatisticFileName):
@@ -50,11 +56,9 @@ def DetectionResultOutput(LiveFeed, frameDelta, thresh, c, direction, TrafficCou
                     format(cv2.contourArea(c))
     # print some info in the console
     print "[DETECTION]     - ", DetectionDetails
-    StatisticFileName2 = open(StatisticFile2, 'w')
-    StatisticFileName2.write(DetectionDetails + "\n")
-    StatisticFileName2.close()
+    DetectionArray.append(DetectionDetails) 
     if conf["ShowPictures"] == True or conf["StoreDetection"] == True:
-    	# in case tone of the two options is activated, put some information to the picture:
+        # in case tone of the two options is activated, put some information to the picture:
         cv2.putText(LiveFeed, "Vehicles counted by algo: {}".format(TrafficCounter), (10, 35),
                     cv2.FONT_HERSHEY_COMPLEX_SMALL, 0.5, (0, 0, 0), 1)
 
@@ -64,7 +68,7 @@ def DetectionResultOutput(LiveFeed, frameDelta, thresh, c, direction, TrafficCou
     #cv2.imshow("Detection view", LiveFeed)                                                                              # show frame where the vehicle went over the line
     if conf["StoreDetection"] == True:
         cv2.imwrite("Screenshots\_" + format(TrafficCounter) + ".jpg", LiveFeed)
-        StatisticFileName.write(DetectionDetails + "\n")
+        #StatisticFileName.write(DetectionDetails + "\n")
         #cv2.imwrite("Screenshots\_" + format(TrafficCounter) + "_"+ format(SimpleCounter)+".jpg", LiveFeed)
         #StatisticFileName.write(DetectionDetails + "\n")
     if conf["StoreThresholdedView"] == True:
@@ -213,15 +217,17 @@ def TrafficDetection(camera):
     ActiveCounter = 0
     InactiveCounter = 0
     Starttime = time.time()
+    Starttime2 = time.time()
     UpdateTime = 0
     TimeSinceLastUpdate = 0
     SimpleCounter = 0
     # ------------------------------------------------------------------------------------------------------------------
-    StatisticFileName = open(StatisticFile, 'w')
+    #StatisticFileName = open(StatisticFile, 'w')
     fps = FPS().start()
     while camera.stopped == False:                                                                                                         # loop over the frames of the video
         try:
             elapsedtime = time.time() - Starttime                                                                           # calculate the time since the video has started
+            WriteTime = time.time() - Starttime2
             UpdateTime = time.time() - Starttime - TimeSinceLastUpdate                                                      # calculate the time since the last background substraction reference picture was taken
             LiveFeed = camera.read()
             #time.sleep(0.1)
@@ -288,10 +294,10 @@ def TrafficDetection(camera):
                             #time.sleep(0.1)
                             DetectionResultOutput(LiveFeed, frameDelta, thresh,c, direction, TrafficCounter, InactiveCounter,
                                                   x, y, w, h, cx, cy, StatisticFileName)                                    # call the function which prints some console stuff, shows the dected picture and write the statistic file
-                    DetectionStatus = "Active"
-                    ActiveCounter = ActiveCounter + 1
+                    #DetectionStatus = "Active"
+                        ActiveCounter = ActiveCounter + 1
                     # Set Detection Status to Active, if there is a larger movement in the detection window
-                    InactiveCounter = 0                                                                                     # Reset the Inactive Counter, because there is some activity detected
+                        InactiveCounter = 0                                                                                     # Reset the Inactive Counter, because there is some activity detected
                     #print cv2.contourArea(c)
                     #time.sleep(0.1)                                                                                        # optional: slowmotion when movement detected (only offline modus)
 
@@ -299,9 +305,13 @@ def TrafficDetection(camera):
                             InactiveCounter >= conf["MinNoMovementFramesToWaitForUpdateBackground"] or \
                             ActiveCounter >= conf["MaxConsecutiveActiveFramesForUpdateBackground"]:                                # update background image
                 firstFrame = Grayscaled_Picture
-                print "[INFO]          - updated first frame @ " + str(time) + " - Delta : " + str(elapsedtime)
-
+                print "[INFO]          - updated first frame @ " + str(time.strftime("%Y-%m-%d %H:%M:%S")) + " - Delta : " + str(elapsedtime)
                 TimeSinceLastUpdate = time.time() - Starttime
+            if WriteTime > 20:
+                Starttime2 = time.time()
+                StatisticFileName = open(StatisticFile, 'w')
+                StatisticFileName.write(str(DetectionArray))
+                StatisticFileName.close()
 
             DrawDetectionFrames(LiveFeed)
             DrawVideoInformation(LiveFeed, DetectionStatus, TrafficCounter, ManualCounter, elapsedtime)
@@ -316,7 +326,7 @@ def TrafficDetection(camera):
                 ManualCounter=ManualCounter+1
             if key == ord("x"):                                                                                             # "x" will store the current frame as picture with prefix "missed detection"
                 print "[INFO]          - missed detection @ ", elapsedtime
-                cv2.imwrite("Screenshots\missed_dectection @ "+format(elapsedtime)+ ".jpg", LiveFeed)
+                cv2.imwrite("Screenshots\missed_dectection @ "+format(time.strftime("%Y-%m-%d %H:%M:%S"))+ ".jpg", LiveFeed)
             if key == ord("l"):                                                                                             # "l" manually triggers the background substraction relearn
                 print "[INFO]          - manually learn new first frame"
                 firstFrame = Grayscaled_Picture
@@ -325,7 +335,7 @@ def TrafficDetection(camera):
     fps.stop()
     print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
     print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
-    StatisticFileName.close()
+    #StatisticFileName.close()
     CloseCamera(camera)
 
 
@@ -338,6 +348,7 @@ def TrafficDetection(camera):
 #global DetectionLine
 global DetectionLineUpperPoint
 global DetectionLineLowerPoint
+global DetectionArray
 #global MinObjectSize
 #global DilateIterations
 #global ThresholdCalibration
@@ -346,12 +357,12 @@ global DetectionLineLowerPoint
 #global MinNoMovementFramesToWaitForUpdateBackground
 global StatisticFile
 
+#app.run(host='0.0.0.0', port=5810)
 
-
+DetectionArray= []
 DetectionLineUpperPoint= conf["DetectionLine"], conf["mindetectionwindowY"]
 DetectionLineLowerPoint= conf["DetectionLine"], conf["maxdetectionwindowY"]
 StatisticFile = r'C:\Data\Git\Tools\TrafficDetection\Statistic_'+format(datetime.datetime.now().strftime("%Y%m%d_%H%Mq%S"))+'.csv'
-StatisticFile2 = r'C:\Data\Git\Tools\TrafficDetection\Log_'+format(datetime.datetime.now().strftime("%Y%m%d_%H%Mq%S"))+'.csv'
 
 print "Main Menu:"                                                                                                      # Main Menu
 print "C - Calibrate Camera"
