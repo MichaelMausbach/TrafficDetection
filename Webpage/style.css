@@ -1,0 +1,14 @@
+.BATT {
+    background-color: white;
+}
+
+#nav, #nav ul {
+    float: left;
+    list-style: none;
+    line-height: 1;
+    background: #0074BC;
+    font-weight: normal;
+    font-size: 16px;
+    padding: 0em;
+    margin: 0 0 1em 0;
+}

@@ -173,165 +173,166 @@ def OnlineVideo():
     print "[Camera Status] - ready"
     return camera
 
-def TrafficDetection(camera):
-    # This is the main Traffic Detection function (side detection view)
-    global SimpleCounter
-    # Default Settings--------------------------------------------------------------------------------------------------
-    firstFrame = None
+class Traffic:
+
     TrafficCounter = 0
     TrafficCounterNorth = 0
     TrafficCounterSouth = 0
-    xold = 0
-    yold = 0
-    x = 0
-    y = 0
-    w = 0
-    h = 0
-    cx = 0
-    cy = 0
-    ManualCounter = 0
-    DetectionStatus = "Inactive"
-    ActiveCounter = 0
-    InactiveCounter = 0
-    Starttime = time.time()
-    Starttime2 = time.time()
-    UpdateTime = 0
-    TimeSinceLastUpdate = 0
-    SimpleCounter = 0
-    FrameCounter = 0
-    # ------------------------------------------------------------------------------------------------------------------
-    StatisticFileName = open(StatisticFile, 'w')
-    fps = FPS().start()
-    while camera.stopped == False:                                                                                                         # loop over the frames of the video
-        try:
-            elapsedtime = time.time() - Starttime  # calculate the time since the video has started
-            WriteTime = time.time() - Starttime2
-            UpdateTime = time.time() - Starttime - TimeSinceLastUpdate  # calculate the time since the last background substraction reference picture was taken
-            LiveFeed = camera.read()
-            FrameCounter=FrameCounter+1
+    DetectionStatus= "Inactive"
+    direction = "None"
+    #Traffic.TrafficCounterNorth = 0
+    #Traffic.TrafficCounterSouth = 0
+    @staticmethod
+    def TrafficDetection(camera):
+        # This is the main Traffic Detection function (side detection view)
+        global SimpleCounter
+        # Default Settings--------------------------------------------------------------------------------------------------
+        firstFrame = None
+        xold = 0
+        yold = 0
+        x = 0
+        y = 0
+        w = 0
+        h = 0
+        cx = 0
+        cy = 0
+        ManualCounter = 0
+        #Traffic.DetectionStatus = "Inactive"
+        ActiveCounter = 0
+        InactiveCounter = 0
+        Starttime = time.time()
+        Starttime2 = time.time()
+        UpdateTime = 0
+        TimeSinceLastUpdate = 0
+        SimpleCounter = 0
+        # ------------------------------------------------------------------------------------------------------------------
+        StatisticFileName = open(StatisticFile, 'w')
+        fps = FPS().start()
+        while camera.stopped == False:                                                                                                         # loop over the frames of the video
+            try:
+                elapsedtime = time.time() - Starttime  # calculate the time since the video has started
+                WriteTime = time.time() - Starttime2
+                UpdateTime = time.time() - Starttime - TimeSinceLastUpdate  # calculate the time since the last background substraction reference picture was taken
+                LiveFeed = camera.read()
+                #time.sleep(0.1)
+                fps.update()
+                Traffic.DetectionStatus = "Inactive"                                                                                    # initialize the status text displayed in the video
+                InactiveCounter = InactiveCounter +1                                                                            # increse the Inactivty counter every loop
+                ActiveCounter = 0
+        #        if not grabbed:                                                                                                 # if the frame could not be grabbed, then we have reached the end of the video
+        #            CloseCamera(camera)                                                                                         # call the camera close function
+        #            break                                                                                                       # go back to main menu
 
-            #time.sleep(0.1)
-            fps.update()
-            DetectionStatus = "Inactive"                                                                                    # initialize the status text displayed in the video
-            InactiveCounter = InactiveCounter +1                                                                            # increse the Inactivty counter every loop
-            ActiveCounter = 0
-    #        if not grabbed:                                                                                                 # if the frame could not be grabbed, then we have reached the end of the video
-    #            CloseCamera(camera)                                                                                         # call the camera close function
-    #            break                                                                                                       # go back to main menu
+                LiveFeed = imutils.resize(LiveFeed, width=conf["ResolutionW"], height=conf["ResolutionH"])                                                                 # resize the LiveFeed
+                Grayscaled_Picture = cv2.cvtColor(LiveFeed, cv2.COLOR_BGR2GRAY)                                                 # convert the LiveFeed to grayscale
+                #Grayscaled_Picture = cv2.GaussianBlur(Grayscaled_Picture, (21, 21), 0)                                          # blur the LiveFeed
 
-            LiveFeed = imutils.resize(LiveFeed, width=conf["ResolutionW"], height=conf["ResolutionH"])                                                                 # resize the LiveFeed
-            Grayscaled_Picture = cv2.cvtColor(LiveFeed, cv2.COLOR_BGR2GRAY)                                                 # convert the LiveFeed to grayscale
-            #Grayscaled_Picture = cv2.GaussianBlur(Grayscaled_Picture, (21, 21), 0)                                          # blur the LiveFeed
+                if firstFrame is None:                                                                                          # if the first frame is None, initialize it
+                    firstFrame = Grayscaled_Picture
+                    continue
 
-            if firstFrame is None:                                                                                          # if the first frame is None, initialize it
-                firstFrame = Grayscaled_Picture
-                continue
+                frameDelta = cv2.absdiff(firstFrame, Grayscaled_Picture)                                                        # compute the absolute difference between the current frame and first frame
+                thresh = cv2.threshold(frameDelta, conf["ThresholdCalibration"], 255, cv2.THRESH_BINARY)[1]
+                thresh = cv2.dilate(thresh, None, iterations=conf["DilateIterations"])                                          # dilate the thresholded image to fill in holes, then find contours on thresholded image
+                (_, cnts, _) = cv2.findContours(thresh.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)                          # opencv 2.4 requires three arguments to find the contours
 
-            frameDelta = cv2.absdiff(firstFrame, Grayscaled_Picture)                                                        # compute the absolute difference between the current frame and first frame
-            thresh = cv2.threshold(frameDelta, conf["ThresholdCalibration"], 255, cv2.THRESH_BINARY)[1]
-            thresh = cv2.dilate(thresh, None, iterations=conf["DilateIterations"])                                          # dilate the thresholded image to fill in holes, then find contours on thresholded image
-            (_, cnts, _) = cv2.findContours(thresh.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)                          # opencv 2.4 requires three arguments to find the contours
-
-            for c in cnts:                                                                                                  # loop over the contours
-                #print cv2.contourArea(c)
-                #print "****************"
-                # if contour is too big, let's reset the background picture
-                if int(conf["MaxObjectSize"]) < cv2.contourArea(c):
-                    firstFrame = None
-                    break
-                if int(conf["MaxObjectSize"]) > cv2.contourArea(c) > int(conf["MinObjectSize"]):                            # if the contour is too small or too big, ignore it
-                    (xold, yold, wold, hold) = (cx, cy, w, h)                                                               # store the former bounding box data to calculate the direction of movement
-                    (x, y, w, h) = cv2.boundingRect(c)                                                                      # compute the bounding box for the contour
-
-                    centroid = cv2.moments(c)  # find the mass center of the blob
-                    cx = int(centroid['m10'] / centroid['m00'])  # for x direction
-                    cy = int(centroid['m01'] / centroid['m00'])  # for y direction
-                    #print str(cx), str(cy)
-                    SimpleCounter = SimpleCounter + 1
-                    if (conf["maxdetectionwindowY"] > y > conf["mindetectionwindowY"]) and (conf["maxdetectionwindowY"] > (y+h)):                                                 # only do an analyis in a specific height of the video
-                        DetectionStatus = "Active"                                                                          # Set Detection Status to Active, if there is a larger movement in the detection window
-                        ActiveStatus = format(cx) + ";" + \
-                        format(xold) + ";" + \
-                        format(cy) + ";" + \
-                        format(yold) + ";" + \
-                        format(w) + ";" + \
-                        format(wold) + ";" + \
-                        format(h) + ";" + \
-                        format(hold) + ";" + \
-                        format(cv2.contourArea(c))
-                        #print ActiveStatus
-                        cv2.rectangle(LiveFeed, (x, y), (x + w, y + h), (0, 255, 0),
-                                      2)  # draw the bounding box on the frame
-                        cv2.putText(LiveFeed, \
-                                    "frame  :o " " -x- -y- -w- -h- Size",
-                                    (x, y - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
-                        cv2.putText(LiveFeed, \
-                                    "current: " + str(cv2.boundingRect(c)) + " Size-" + str(cv2.contourArea(c)), \
-                                    (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
-                        cv2.putText(LiveFeed, \
-                                    "former: " + str((xold, yold, wold, hold)) + " Size-" + str(cv2.contourArea(c-1)), \
-                                    (x, y + 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
-                        direction = "None"
-                        #time.sleep(0.1)
-                        if cx >= conf["DetectionLine"] and xold < conf["DetectionLine"] and xold < cx and (cx-xold)<=conf["MaximumMovementDelta"]:  # detect movement accross the line (only small movements are allowed) from left to right
-                            TrafficCounter = TrafficCounter + 1                                                             # increase the counter
-                            TrafficCounterNorth = TrafficCounterNorth +1
-                            direction = "North"
-                            DetectionResultOutput(LiveFeed, frameDelta, thresh, c, direction, TrafficCounter,InactiveCounter,
-                                                  x,y,w,h,cx,cy, StatisticFileName)                                         # call the function which prints some console stuff, shows the dected picture and write the statistic file
-                        if cx <= conf["DetectionLine"] and xold > conf["DetectionLine"] and xold > cx and (xold-cx)<=conf["MaximumMovementDelta"]:  # detect movement accross the line (only small movements are allowed) from right to left
-                            TrafficCounter = TrafficCounter + 1
-                            TrafficCounterSouth = TrafficCounterSouth + 1
-                            # increase the counter
-                            direction = "South"
-                            DetectionResultOutput(LiveFeed, frameDelta, thresh,c, direction, TrafficCounter, InactiveCounter,
-                                                  x, y, w, h, cx, cy, StatisticFileName)                                    # call the function which prints some console stuff, shows the dected picture and write the statistic file
-                        ActiveCounter = ActiveCounter + 1
-                    # Set Detection Status to Active, if there is a larger movement in the detection window
-                        InactiveCounter = 0                                                                                     # Reset the Inactive Counter, because there is some activity detected
+                for c in cnts:                                                                                                  # loop over the contours
                     #print cv2.contourArea(c)
+                    #print "****************"
+                    # if contour is too big, let's reset the background picture
+                    if int(conf["MaxObjectSize"]) < cv2.contourArea(c):
+                        firstFrame = None
+                        break
+                    if int(conf["MaxObjectSize"]) > cv2.contourArea(c) > int(conf["MinObjectSize"]):                            # if the contour is too small or too big, ignore it
+                        (xold, yold, wold, hold) = (cx, cy, w, h)                                                               # store the former bounding box data to calculate the direction of movement
+                        (x, y, w, h) = cv2.boundingRect(c)                                                                      # compute the bounding box for the contour
 
-            if UpdateTime > conf["MinTimeToWaitForUpdateBackground"] and \
-                            InactiveCounter >= conf["MinNoMovementFramesToWaitForUpdateBackground"] or \
-                            ActiveCounter >= conf["MaxConsecutiveActiveFramesForUpdateBackground"]:                                # update background image
-                firstFrame = Grayscaled_Picture
-                print "[INFO]          - updated first frame @ " + str(time.strftime("%Y-%m-%d %H:%M:%S")) + " - Delta : " + str(elapsedtime)
-                TimeSinceLastUpdate = time.time() - Starttime
-            if WriteTime > 20:
-                Starttime2 = time.time()
-                StatisticFileName = open(StatisticFile, 'w')
-                StatisticFileName.write(str(DetectionArray))
-                StatisticFileName.close()
+                        centroid = cv2.moments(c)  # find the mass center of the blob
+                        cx = int(centroid['m10'] / centroid['m00'])  # for x direction
+                        cy = int(centroid['m01'] / centroid['m00'])  # for y direction
+                        #print str(cx), str(cy)
+                        SimpleCounter = SimpleCounter + 1
+                        if (conf["maxdetectionwindowY"] > y > conf["mindetectionwindowY"]) and (conf["maxdetectionwindowY"] > (y+h)):                                                 # only do an analyis in a specific height of the video
+                            Traffic.DetectionStatus = "Active"                                                                          # Set Detection Status to Active, if there is a larger movement in the detection window
+                            ActiveStatus = format(cx) + ";" + \
+                            format(xold) + ";" + \
+                            format(cy) + ";" + \
+                            format(yold) + ";" + \
+                            format(w) + ";" + \
+                            format(wold) + ";" + \
+                            format(h) + ";" + \
+                            format(hold) + ";"
+                            #print ActiveStatus
+                            cv2.rectangle(LiveFeed, (x, y), (x + w, y + h), (0, 255, 0),
+                                          2)  # draw the bounding box on the frame
+                            cv2.putText(LiveFeed, \
+                                        "frame  : " " -x- -y- -w- -h- Size",
+                                        (x, y - 30), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
+                            cv2.putText(LiveFeed, \
+                                        "current: " + str(cv2.boundingRect(c)) + " Size-" + str(cv2.contourArea(c)), \
+                                        (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
+                            cv2.putText(LiveFeed, \
+                                        "former: " + str((xold, yold, wold, hold)) + " Size-" + str(cv2.contourArea(c-1)), \
+                                        (x, y + 10), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
+                            Traffic.direction = "None"
+                            #time.sleep(0.1)
+                            if cx >= conf["DetectionLine"] and xold < conf["DetectionLine"] and xold < cx and (cx-xold)<=conf["MaximumMovementDelta"]:  # detect movement accross the line (only small movements are allowed) from left to right
+                                Traffic.TrafficCounter = Traffic.TrafficCounter + 1                                                             # increase the counter
+                                Traffic.TrafficCounterNorth = Traffic.TrafficCounterNorth +1
+                                Traffic.direction = "North"
+                                DetectionResultOutput(LiveFeed, frameDelta, thresh, c, Traffic.direction, Traffic.TrafficCounter,InactiveCounter,
+                                                      x,y,w,h,cx,cy, StatisticFileName)                                         # call the function which prints some console stuff, shows the dected picture and write the statistic file
+                            if cx <= conf["DetectionLine"] and xold > conf["DetectionLine"] and xold > cx and (xold-cx)<=conf["MaximumMovementDelta"]:  # detect movement accross the line (only small movements are allowed) from right to left
+                                Traffic.TrafficCounter = Traffic.TrafficCounter + 1
+                                Traffic.TrafficCounterSouth = Traffic.TrafficCounterSouth + 1
+                                # increase the counter
+                                Traffic.direction = "South"
+                                DetectionResultOutput(LiveFeed, frameDelta, thresh,c, Traffic.direction, Traffic.TrafficCounter, InactiveCounter,
+                                                      x, y, w, h, cx, cy, StatisticFileName)                                    # call the function which prints some console stuff, shows the dected picture and write the statistic file
+                            ActiveCounter = ActiveCounter + 1
+                        # Set Detection Status to Active, if there is a larger movement in the detection window
+                            InactiveCounter = 0                                                                                     # Reset the Inactive Counter, because there is some activity detected
+                        #print cv2.contourArea(c)
 
-            DrawDetectionFrames(LiveFeed)
-            DrawVideoInformation(LiveFeed, DetectionStatus, TrafficCounter, ManualCounter, elapsedtime)
+                if UpdateTime > conf["MinTimeToWaitForUpdateBackground"] and \
+                                InactiveCounter >= conf["MinNoMovementFramesToWaitForUpdateBackground"] or \
+                                ActiveCounter >= conf["MaxConsecutiveActiveFramesForUpdateBackground"]:                                # update background image
+                    firstFrame = Grayscaled_Picture
+                    print "[INFO]          - updated first frame @ " + str(time.strftime("%Y-%m-%d %H:%M:%S")) + " - Delta : " + str(elapsedtime)
+                    TimeSinceLastUpdate = time.time() - Starttime
+                if WriteTime > 20:
+                    Starttime2 = time.time()
+                    StatisticFileName = open(StatisticFile, 'w')
+                    StatisticFileName.write(str(DetectionArray))
+                    StatisticFileName.close()
 
-            ShowVideoOutput(LiveFeed, frameDelta, thresh, firstFrame)
-            #print FrameCounter, DetectionStatus, TrafficCounter, TrafficCounterNorth, TrafficCounterSouth]
+                DrawDetectionFrames(LiveFeed)
+                DrawVideoInformation(LiveFeed, Traffic.DetectionStatus, Traffic.TrafficCounter, ManualCounter, elapsedtime)
 
-            '''key = cv2.waitKey(1) & 0xFF
-            if key == 27:                                                                                                   # if the ESC key is pressed, break from the loop
-                cv2.imwrite("Screenshots\Final.jpg", LiveFeed)                                                              # write the last frame to a file for storage
+                ShowVideoOutput(LiveFeed, frameDelta, thresh, firstFrame)
+
+                key = cv2.waitKey(1) & 0xFF
+                if key == 27:                                                                                                   # if the ESC key is pressed, break from the loop
+                    cv2.imwrite("Screenshots\Final.jpg", LiveFeed)                                                              # write the last frame to a file for storage
+                    break
+                if key == ord("c"):                                                                                             # "c" increases the counts of manual counted vehicles
+                    ManualCounter=ManualCounter+1
+                if key == ord("x"):                                                                                             # "x" will store the current frame as picture with prefix "missed detection"
+                    print "[INFO]          - missed detection @ ", elapsedtime
+                    cv2.imwrite("Screenshots\missed_dectection @ "+format(time.strftime("%Y-%m-%d %H:%M:%S"))+ ".jpg", LiveFeed)
+                if key == ord("l"):                                                                                             # "l" manually triggers the background substraction relearn
+                    print "[INFO]          - manually learn new first frame"
+                    firstFrame = Grayscaled_Picture
+            except KeyboardInterrupt:
                 break
-            if key == ord("c"):                                                                                             # "c" increases the counts of manual counted vehicles
-                ManualCounter=ManualCounter+1
-            if key == ord("x"):                                                                                             # "x" will store the current frame as picture with prefix "missed detection"
-                print "[INFO]          - missed detection @ ", elapsedtime
-                cv2.imwrite("Screenshots\missed_dectection @ "+format(time.strftime("%Y-%m-%d %H:%M:%S"))+ ".jpg", LiveFeed)
-            if key == ord("l"):                                                                                             # "l" manually triggers the background substraction relearn
-                print "[INFO]          - manually lean new first frame"
-                firstFrame = Grayscaled_Picture
-            '''
-        except KeyboardInterrupt:
-            break
-    fps.stop()
-    print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
-    print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
-    print("[INFO] Detection South: " + format(TrafficCounterSouth))
-    print("[INFO] Detection North: " + format(TrafficCounterNorth))
+        fps.stop()
+        print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
+        print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
+        print("[INFO] Detection South: " + format(Traffic.TrafficCounterSouth))
+        print("[INFO] Detection North: " + format(Traffic.TrafficCounterNorth))
 
-    #StatisticFileName.close()
-    CloseCamera(camera)
+        #StatisticFileName.close()
+        CloseCamera(camera)
 
 
 
@@ -359,7 +360,7 @@ DetectionLineUpperPoint= conf["DetectionLine"], conf["mindetectionwindowY"]
 DetectionLineLowerPoint= conf["DetectionLine"], conf["maxdetectionwindowY"]
 StatisticFile = r'C:\Data\Git\Tools\TrafficDetection\Statistic_'+format(datetime.datetime.now().strftime("%Y%m%d_%H%Mq%S"))+'.csv'
 
-print "Main Menu:"                                                                                                      # Main Menu
+'''print "Main Menu:"                                                                                                      # Main Menu
 print "C - Calibrate Camera"
 print "R - Record Video"
 print "O - Offline Video Analysis"
@@ -387,3 +388,4 @@ while True:                                                                     
         print "[Tool Status]   - ENDED"
 
         break
+'''
